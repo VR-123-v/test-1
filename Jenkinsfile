@@ -1,9 +1,9 @@
 pipeline {
     agent any
     environment {
-        AWS_DEFAULT_REGION     = 'us-east-1'
-        SECONDARY_REGION       = 'us-west-2'
-        TERRAFORM_DIR          = 'terraform'
+        AWS_DEFAULT_REGION        = 'us-east-1'       // Primary region
+        SECONDARY_REGION          = 'us-west-2'       // Secondary region
+        TERRAFORM_DIR             = 'terraform'
         TF_VAR_S3_PRIMARY_PREFIX   = 'primary-vr'
         TF_VAR_S3_SECONDARY_PREFIX = 'secondary-vr'
     }
@@ -11,7 +11,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/VR-123-v/Multi-Region-Disaster-Recovery_threetier.git'
+                // Make sure this repo contains the terraform folder and scripts
+                git branch: 'main', url: 'https://github.com/VR-123-v/test-1.git'
             }
         }
 
@@ -41,16 +42,16 @@ pipeline {
 
         stage('Sync Web Content to S3') {
             steps {
-                dir("${env.TERRAFORM_DIR}") {
-                    sh './scripts/s3-sync.sh'
+                dir("${env.TERRAFORM_DIR}/scripts") {
+                    sh './s3-sync.sh'
                 }
             }
         }
 
         stage('Trigger Failover Check') {
             steps {
-                dir("${env.TERRAFORM_DIR}") {
-                    sh './scripts/failover.sh'
+                dir("${env.TERRAFORM_DIR}/scripts") {
+                    sh './failover.sh'
                 }
             }
         }
@@ -61,8 +62,7 @@ pipeline {
             echo 'Deployment completed successfully!'
         }
         failure {
-            echo "Pipeline failed. Check console output."
-            // mail step can be enabled if SMTP is configured
+            echo 'Pipeline failed. Check Jenkins console output for details.'
         }
     }
 }
